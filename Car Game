@@ -1,110 +1,147 @@
-import pygame
-import time
 import random
+from time import sleep
 
-pygame.init()
+import pygame
+from pathlib2 import Path
 
-display_width = 800
-display_height = 600
 
-black = (0,0,0)
-white = (255,255,255)
-red = (255,0,0)
+class CarRacing:
+    def __init__(self):
 
-car_width = 73
+        pygame.init()
+        self.display_width = 800
+        self.display_height = 600
+        self.black = (0, 0, 0)
+        self.white = (255, 255, 255)
+        self.clock = pygame.time.Clock()
+        self.gameDisplay = None
+        self.root_path = str(Path(__file__).parent)
 
-gameDisplay = pygame.display.set_mode((display_width,display_height))
-pygame.display.set_caption('A bit Racey')
-clock = pygame.time.Clock()
+        self.initialize()
 
-carImg = pygame.image.load('racecar.png')
+    def initialize(self):
 
-def things(thingx, thingy, thingw, thingh, color):
-    pygame.draw.rect(gameDisplay, color, [thingx, thingy, thingw, thingh])
+        self.crashed = False
 
-def car(x,y):
-    gameDisplay.blit(carImg,(x,y))
+        self.carImg = pygame.image.load(self.root_path + "/img/car.png")
+        self.car_x_coordinate = (self.display_width * 0.45)
+        self.car_y_coordinate = (self.display_height * 0.8)
+        self.car_width = 49
 
-def text_objects(text, font):
-    textSurface = font.render(text, True, black)
-    return textSurface, textSurface.get_rect()
+        # enemy_car
+        self.enemy_car = pygame.image.load(self.root_path + "/img/enemy_car_1.png")
+        self.enemy_car_startx = random.randrange(310, 450)
+        self.enemy_car_starty = -600
+        self.enemy_car_speed = 5
+        self.enemy_car_width = 49
+        self.enemy_car_height = 100
 
-def message_display(text):
-    largeText = pygame.font.Font('freesansbold.ttf',115)
-    TextSurf, TextRect = text_objects(text, largeText)
-    TextRect.center = ((display_width/2),(display_height/2))
-    gameDisplay.blit(TextSurf, TextRect)
+        # Background
+        self.bgImg = pygame.image.load(self.root_path + "/img/back_ground.jpg")
+        self.bg_x1 = (self.display_width / 2) - (360 / 2)
+        self.bg_x2 = (self.display_width / 2) - (360 / 2)
+        self.bg_y1 = 0
+        self.bg_y2 = -600
+        self.bg_speed = 3
+        self.count = 0
 
-    pygame.display.update()
+    def car(self, car_x_coordinate, car_y_coordinate):
+        self.gameDisplay.blit(self.carImg, (car_x_coordinate, car_y_coordinate))
 
-    time.sleep(2)
+    def racing_window(self):
+        self.gameDisplay = pygame.display.set_mode((self.display_width, self.display_height))
+        pygame.display.set_caption('Car Race -- Anuj')
+        self.run_car()
 
-    game_loop()
-    
-    
+    def run_car(self):
 
-def crash():
-    message_display('You Crashed')
-    
-def game_loop():
-    x = (display_width * 0.45)
-    y = (display_height * 0.8)
+        while not self.crashed:
 
-    x_change = 0
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    self.crashed = True
+                # print(event)
 
-    thing_startx = random.randrange(0, display_width)
-    thing_starty = -600
-    thing_speed = 7
-    thing_width = 100
-    thing_height = 100
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_LEFT:
+                        self.car_x_coordinate -= 50
+                        print("CAR X COORDINATES: %s" % self.car_x_coordinate)
+                    if event.key == pygame.K_RIGHT:
+                        self.car_x_coordinate += 50
+                        print("CAR X COORDINATES: %s" % self.car_x_coordinate)
+                    print("x: {x}, y: {y}".format(x=self.car_x_coordinate, y=self.car_y_coordinate))
 
-    gameExit = False
+            self.gameDisplay.fill(self.black)
+            self.back_ground_road()
 
-    while not gameExit:
+            self.run_enemy_car(self.enemy_car_startx, self.enemy_car_starty)
+            self.enemy_car_starty += self.enemy_car_speed
 
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                pygame.quit()
-                quit()
+            if self.enemy_car_starty > self.display_height:
+                self.enemy_car_starty = 0 - self.enemy_car_height
+                self.enemy_car_startx = random.randrange(310, 450)
 
-            if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_LEFT:
-                    x_change = -5
-                if event.key == pygame.K_RIGHT:
-                    x_change = 5
+            self.car(self.car_x_coordinate, self.car_y_coordinate)
+            self.highscore(self.count)
+            self.count += 1
+            if self.count % 100 == 0:
+                self.enemy_car_speed += 1
+                self.bg_speed += 1
 
-            if event.type == pygame.KEYUP:
-                if event.key == pygame.K_LEFT or event.key == pygame.K_RIGHT:
-                    x_change = 0
+            if self.car_y_coordinate < self.enemy_car_starty + self.enemy_car_height:
+                if self.car_x_coordinate > self.enemy_car_startx and self.car_x_coordinate < self.enemy_car_startx + self.enemy_car_width or self.car_x_coordinate + self.car_width > self.enemy_car_startx and self.car_x_coordinate + self.car_width < self.enemy_car_startx + self.enemy_car_width:
+                    self.crashed = True
+                    self.display_message("Game Over !!!")
 
-        x += x_change
-        gameDisplay.fill(white)
+            if self.car_x_coordinate < 310 or self.car_x_coordinate > 460:
+                self.crashed = True
+                self.display_message("Game Over !!!")
 
-        # things(thingx, thingy, thingw, thingh, color)
-        things(thing_startx, thing_starty, thing_width, thing_height, black)
-        thing_starty += thing_speed
-        car(x,y)
+            pygame.display.update()
+            self.clock.tick(60)
 
-        if x > display_width - car_width or x < 0:
-            crash()
-
-        if thing_starty > display_height:
-            thing_starty = 0 - thing_height
-            thing_startx = random.randrange(0,display_width)
-
-        ####
-        if y < thing_starty+thing_height:
-            print('y crossover')
-
-            if x > thing_startx and x < thing_startx + thing_width or x+car_width > thing_startx and x + car_width < thing_startx+thing_width:
-                print('x crossover')
-                crash()
-        ####
-        
+    def display_message(self, msg):
+        font = pygame.font.SysFont("comicsansms", 72, True)
+        text = font.render(msg, True, (255, 255, 255))
+        self.gameDisplay.blit(text, (400 - text.get_width() // 2, 240 - text.get_height() // 2))
+        self.display_credit()
         pygame.display.update()
-        clock.tick(60)
+        self.clock.tick(60)
+        sleep(1)
+        car_racing.initialize()
+        car_racing.racing_window()
+
+    def back_ground_road(self):
+        self.gameDisplay.blit(self.bgImg, (self.bg_x1, self.bg_y1))
+        self.gameDisplay.blit(self.bgImg, (self.bg_x2, self.bg_y2))
+
+        self.bg_y1 += self.bg_speed
+        self.bg_y2 += self.bg_speed
+
+        if self.bg_y1 >= self.display_height:
+            self.bg_y1 = -600
+
+        if self.bg_y2 >= self.display_height:
+            self.bg_y2 = -600
+
+    def run_enemy_car(self, thingx, thingy):
+        self.gameDisplay.blit(self.enemy_car, (thingx, thingy))
+
+    def highscore(self, count):
+        font = pygame.font.SysFont("lucidaconsole", 20)
+        text = font.render("Score : " + str(count), True, self.white)
+        self.gameDisplay.blit(text, (0, 0))
+
+    def display_credit(self):
+        font = pygame.font.SysFont("lucidaconsole", 14)
+        text = font.render("Thanks & Regards,", True, self.white)
+        self.gameDisplay.blit(text, (600, 520))
+        text = font.render("Anuj Kumar", True, self.white)
+        self.gameDisplay.blit(text, (600, 540))
+        text = font.render("cdac.anuj@gmail.com", True, self.white)
+        self.gameDisplay.blit(text, (600, 560))
 
 
-game_loop()
-pygame.quit()
-quit()
+if __name__ == '__main__':
+    car_racing = CarRacing()
+    car_racing.racing_window()
